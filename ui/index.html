@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>SEFS Live Graph</title>
+
+    <script src="https://unpkg.com/force-graph"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+        }
+
+        #graph {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: #111827;
+            padding: 6px 10px;
+            border-radius: 6px;
+            pointer-events: none;
+            font-size: 12px;
+            border: 1px solid #374151;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="graph"></div>
+    <div id="tooltip" class="tooltip" style="display:none;"></div>
+
+    <script>
+        const tooltip = document.getElementById("tooltip");
+
+        const Graph = ForceGraph()(document.getElementById('graph'))
+            .nodeLabel(n => n.label)
+            .nodeAutoColorBy('type')
+            .nodeCanvasObject((node, ctx, globalScale) => {
+                const label = node.label;
+                const fontSize = 12 / globalScale;
+                ctx.font = `${fontSize}px Sans-Serif`;
+                ctx.fillStyle = node.type === "cluster" ? "#22c55e" : "#60a5fa";
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.type === "cluster" ? 8 : 4, 0, 2 * Math.PI, false);
+                ctx.fill();
+            })
+            .onNodeClick(node => {
+                if (node.type === "file" && node.path) {
+                    window.open("file://" + node.path);
+                }
+            })
+            .onNodeHover(node => {
+                if (!node) {
+                    tooltip.style.display = "none";
+                    return;
+                }
+                tooltip.style.display = "block";
+                tooltip.innerText = node.label;
+            })
+            .onEngineTick(() => {
+                if (Graph.hoverNode()) {
+                    tooltip.style.left = (Graph.hoverNode().x + 15) + "px";
+                    tooltip.style.top = (Graph.hoverNode().y + 15) + "px";
+                }
+            });
+
+
+        // ---------------- WebSocket ----------------
+        const ws = new WebSocket(`ws://${location.host}/ws`);
+
+        ws.onmessage = event => {
+            const data = JSON.parse(event.data);
+            Graph.graphData(data);
+        };
+
+        // keep alive ping
+        setInterval(() => {
+            ws.send("ping");
+        }, 3000);
+    </script>
+
+</body>
+
+</html>
