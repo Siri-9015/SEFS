@@ -1,7 +1,3 @@
-"""
-Main Entry Point.
-Initializes the database, engine, and monitor, then starts the UI server.
-"""
 from __future__ import annotations
 
 from pathlib import Path
